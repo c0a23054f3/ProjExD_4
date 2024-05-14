@@ -279,6 +279,35 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class Shield(pg.sprite.Sprite):
+    """
+    こうかとんが張るシールドに関するクラス
+    引数１: こうかとんのsurface
+    引数２: 発動時間
+    """
+    def __init__(self, bird:Bird, life:int):
+        super().__init__()
+        self.life = life
+        self.image = pg.Surface((20, bird.rect.height*2))  # 空のsurface
+        pg.draw.rect(self.image,(0, 0, 255), (0, 0, 20, bird.rect.height*2))  #シールドの設定
+        self.vx, self.vy = bird.dire  # こうかとんの向き取得
+        self.shd_angle = math.degrees(math.atan2(-self.vy, self.vx))  # シールドの角度
+        print(self.shd_angle)
+        self.rect = self.image.get_rect()  # シールドのrect取得
+        self.image = pg.transform.rotozoom(self.image, self.shd_angle, 1.0)  # シールドの回転
+        self.image.set_colorkey((0, 0, 0))
+        self.rect.center = ((bird.rect.centerx+bird.rect.width*self.vx), (bird.rect.centery+bird.rect.height*(self.vy)))
+        
+
+    def update(self):
+        if (self.life < 0):
+            self.kill()
+        self.life -= 1
+
+
+
+
+
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -292,6 +321,7 @@ def main():
     emys = pg.sprite.Group()
     gravity_fields = pg.sprite.Group()
 
+    shield = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -305,6 +335,11 @@ def main():
             if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value >= 200:
                 score.value -= 200
                 gravity_fields.add(Gravity(400))
+            if (event.type == pg.KEYDOWN and event.key == pg.K_s):
+                if (score.value > 50):
+                    if len(shield) == 0:
+                        shield.add(Shield(bird, 400))
+                        score.value -= 50
         screen.blit(bg_img, [0, 0])
 
 
@@ -322,6 +357,10 @@ def main():
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+            score.value += 1  # 1点アップ
+        
+        for bomb in pg.sprite.groupcollide(bombs, shield, True, False).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
 
@@ -363,6 +402,8 @@ def main():
         gravity_fields.update()
         gravity_fields.draw(screen)
         score.update(screen)
+        shield.update()
+        shield.draw(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
