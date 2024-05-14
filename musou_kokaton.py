@@ -305,7 +305,25 @@ class Shield(pg.sprite.Sprite):
         self.life -= 1
 
 
-
+class Emp:
+    """
+    empを発動する
+    引数 bombs:Bombインスタンスグループ emys:Enemyインスタンスグループ
+         screen:画面Surface
+    """
+    def __init__(self, bombs: pg.sprite.Group, emys:pg.sprite.Group, screen: pg.Surface):
+        for emy in emys:
+            emy.interval = math.inf
+            emy.image = pg.transform.laplacian(emy.image)
+            emy.image.set_colorkey((0,0,0))
+        for bomb in bombs:
+            bomb.speed /= 2
+        self.image = pg.Surface((WIDTH, HEIGHT))
+        pg.draw.rect = (self.image, (255, 255, 0), (0, 0, 1600, 900))
+        self.image.set_alpha(100)
+        screen.blit(self.image, [0, 0])
+        pg.display.update()
+        time.sleep(0.05)
 
 
 def main():
@@ -332,6 +350,7 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+
             if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value >= 200:
                 score.value -= 200
                 gravity_fields.add(Gravity(400))
@@ -340,6 +359,12 @@ def main():
                     if len(shield) == 0:
                         shield.add(Shield(bird, 400))
                         score.value -= 50
+
+            if score.value >= 20:
+                if event.type == pg.KEYDOWN and event.key == pg.K_e:
+                    Emp(bombs, emys, screen)
+                    score.value -= 20
+
         screen.blit(bg_img, [0, 0])
 
 
@@ -363,6 +388,7 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, shield, True, False).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
+
 
         for gravity in gravity_fields:
             for bomb in pg.sprite.spritecollide(gravity,bombs,True):
@@ -389,6 +415,15 @@ def main():
                 bird.hyper_life = 500
                 score.value -= 100
                 bird.update(key_lst, screen)
+
+        for bomb in pg.sprite.spritecollide(bird, bombs, True):
+            if bomb.state == "inactive":
+                continue
+            bird.change_img(8, screen) # こうかとん悲しみエフェクト
+            score.update(screen)
+            pg.display.update()
+            time.sleep(2)
+            return
 
         bird.update(key_lst, screen)
         beams.update()
